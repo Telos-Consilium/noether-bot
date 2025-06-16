@@ -1,12 +1,11 @@
 # config_manager.py
 
 from pydantic import BaseModel
-from typing import Any, Dict
+from typing import Any
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-
 
 class APICredentials(BaseModel):
     api_key: str
@@ -60,6 +59,9 @@ class ConfigManager:
 
     def get_eulerswap_pool_address(self) -> str:
         return os.getenv("EULERSWAP_POOL", "")
+
+    def get_rpc_url(self) -> str:
+        return os.getenv("RPC_URL", "")
 
     def update_parameter(self, key: str, value: Any) -> None:
         if hasattr(self._strategy_config, key):
