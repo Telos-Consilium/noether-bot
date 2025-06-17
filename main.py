@@ -2,6 +2,7 @@ import asyncio
 from swap_monitor.rpc_swap_monitor import RPCSwapMonitor
 from models.pool_snapshot import PoolSnapshot
 from config.config import ConfigManager
+from exchange_manager.binance_exchange import BinanceExchange
 import os
 
 config = ConfigManager()
@@ -19,6 +20,14 @@ async def main():
     monitor.start_monitoring(POOL_ADDRESS)
 
     print(f"Started monitoring pool at {POOL_ADDRESS}")
+
+    exchange = BinanceExchange()
+    symbol = "ETHUSDT"
+    mark_price = await exchange.get_current_price(symbol)
+    funding_rate = await exchange.get_funding_rate(symbol)
+
+    print(f"Current Mark Price for {symbol}: {mark_price}")
+    print(f"Current Funding Rate for {symbol}: {funding_rate:.6%}")
     while True:
         await asyncio.sleep(3600)  # keep process alive (or use asyncio.Event for clean exit)
 
