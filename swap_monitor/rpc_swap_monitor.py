@@ -36,7 +36,7 @@ class RPCSwapMonitor(ISwapMonitor):
         prev_reserves = None
         while self._running:
             reserves = self.contract.functions.getReserves().call()
-            current = PoolSnapshot(reserve_token0=reserves[0], reserve_token1=reserves[1], timestamp=datetime.utcnow())
+            current = PoolSnapshot(reserve_token0=reserves[0]/10**6, reserve_token1=reserves[1]/10**18, timestamp=datetime.utcnow())
 
             if prev_reserves is None or current != prev_reserves:
                 prev_reserves = current

@@ -21,13 +21,22 @@ async def main():
 
     print(f"Started monitoring pool at {POOL_ADDRESS}")
 
-    exchange = BinanceExchange()
+    binance_exchange_creds = config.get_exchange_credentials('binance')
+    binance_exchange = BinanceExchange(api_key=binance_exchange_creds.api_key, api_secret=binance_exchange_creds.api_secret)
     symbol = "ETHUSDT"
-    mark_price = await exchange.get_current_price(symbol)
-    funding_rate = await exchange.get_funding_rate(symbol)
+    mark_price = await binance_exchange.get_current_price(symbol)
+    funding_rate = await binance_exchange.get_funding_rate(symbol)
 
     print(f"Current Mark Price for {symbol}: {mark_price}")
     print(f"Current Funding Rate for {symbol}: {funding_rate:.6%}")
+
+    sample_short_size = 0.01
+    sample_leverage = 5
+
+    print("Opening short position with sample sizes ...")
+    order = await binance_exchange.open_short_position(symbol, sample_short_size, sample_leverage)
+    print("Order result", order)
+    await binance_exchange.close()
     while True:
         await asyncio.sleep(3600)  # keep process alive (or use asyncio.Event for clean exit)
 
