@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Callable
-from models.pool_snapshot import PoolSnapshot
+from models.position_snapshot import PositionSnapshot
 
 class ISwapMonitor(ABC):
     @abstractmethod
@@ -12,5 +12,5 @@ class ISwapMonitor(ABC):
         pass
 
     @abstractmethod
-    def on_reserve_change(self, callback: Callable[[PoolSnapshot], None]) -> None:
+    def on_reserve_change(self, callback: Callable[[PositionSnapshot], None]) -> None:
         pass

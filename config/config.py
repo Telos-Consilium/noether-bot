@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from typing import Any
 import os
 from dotenv import load_dotenv
+from exchange_manager.binance_exchange import BinanceExchange
+from exchange_manager.exchange import IExchange
 
 load_dotenv()
 
@@ -48,6 +50,8 @@ class ConfigManager:
             )
         }
 
+        self._exchanges = {}
+
     def get_exchange_credentials(self, exchange: str) -> APICredentials:
         return self._credentials[exchange]
 
@@ -62,6 +66,19 @@ class ConfigManager:
 
     def get_rpc_url(self) -> str:
         return os.getenv("RPC_URL", "")
+
+    def get_exchange(self, exchange: str) -> IExchange:
+        if exchange not in self._exchanges:
+            creds = self.get_exchange_credentials(exchange)
+            if exchange == "binance":
+                self._exchanges[exchange] = BinanceExchange(
+                    api_key=creds.api_key,
+                    api_secret=creds.api_secret,
+                )
+            else:
+                raise ValueError(f"Exchange '{exchange}' is not supported yet.")
+        return self._exchanges[exchange]
+
 
     def update_parameter(self, key: str, value: Any) -> None:
         if hasattr(self._strategy_config, key):
