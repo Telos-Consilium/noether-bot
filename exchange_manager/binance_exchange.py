@@ -46,5 +46,20 @@ class BinanceExchange(IExchange):
         order = await self.exchange.create_order(symbol, 'market', 'sell', size)
         return order
 
+    async def close_position(self, symbol: str, size: float, leverage: int):
+        await self.exchange.load_markets()
+        await self.exchange.set_leverage(leverage, symbol)
+        order = await self.exchange.create_order(symbol, 'market', 'buy', size)
+        return order
+
+    async def get_current_perpetual_position(self, symbol: str):
+        await self.exchange.load_markets()
+        positions = await self.exchange.fetch_positions([symbol])
+        for position in positions:
+               if position['symbol'] == symbol:
+                   return float(str(position['contracts']))
+        return 0.0
+
+
     async def close(self):
         await self.exchange.close()
