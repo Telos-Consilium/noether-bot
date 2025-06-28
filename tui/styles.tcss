@@ -1,0 +1,28 @@
+#status-title {
+  color: cyan;
+  text-style: bold;
+}
+
+#log-title {
+  color: magenta;
+  text-style: bold;
+}
+
+LogViewer {
+  height: 20;
+  overflow: auto;
+  border: round white;
+  padding: 1;
+}
+
+HedgeStatus {
+  height: 5;
+  padding: 1;
+  border: round green;
+}
+
+LineGraphWidget {
+  height: 12;
+  border: round blue;
+  padding: 1;
+}
