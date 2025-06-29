@@ -1,6 +1,7 @@
 #status-title {
   color: cyan;
   text-style: bold;
+  margin-left: 1;
 }
 
 #log-title {
@@ -16,13 +17,23 @@ LogViewer {
 }
 
 HedgeStatus {
-  height: 5;
+  height: 10;
   padding: 1;
+  margin-left: 1;
   border: round green;
 }
 
-LineGraphWidget {
-  height: 12;
-  border: round blue;
-  padding: 1;
+PlotextPlot {
+  margin: 1;
+  margin-top: 0;
+  margin-right: 2;
+  background: transparent;
+}
+
+Static {
+    margin-left: 1;
+}
+
+Header {
+    margin-bottom: 1;
 }

@@ -1,40 +1,40 @@
 # tui/graph_widget.py
 
-from textual.widget import Widget
-from textual.reactive import reactive
-from textual.message import Message
-from rich.text import Text
+from textual.widgets import Static
+import plotext as plt
+from datetime import datetime
 
-class LineGraphWidget(Widget):
-    def __init__(self, title: str, color: str = "green", max_points: int = 30):
+
+class LineGraphWidget(Static):
+    def __init__(self, title: str, color: str = "white"):
         super().__init__()
         self.title = title
         self.color = color
-        self.max_points = max_points
-        self.data_points = []
+        self.timestamps = []  # datetime objects
+        self.values = []
+        self.max_points = 30
 
-    def update_data(self, label: str, value: float):
-        self.data_points.append(value)
-        if len(self.data_points) > self.max_points:
-            self.data_points.pop(0)
+    def update_data(self, timestamp: datetime, value: float):
+        self.timestamps.append(timestamp)
+        self.values.append(value)
+
+        if len(self.timestamps) > self.max_points:
+            self.timestamps.pop(0)
+            self.values.pop(0)
+
         self.refresh()
 
-    def render(self) -> Text:
-        if not self.data_points:
-            return Text("No data yet", style="dim")
+    def render(self) -> str:
+        if not self.values:
+            return "Loading..."
 
-        max_val = max(self.data_points)
-        min_val = min(self.data_points)
-        range_val = max_val - min_val or 1e-6
-        height = 10  # number of text rows for vertical space
-
-        # build graph grid
-        grid = [[" " for _ in range(len(self.data_points))] for _ in range(height)]
-
-        for i, val in enumerate(self.data_points):
-            bar_height = int((val - min_val) / range_val * (height - 1))
-            grid[height - 1 - bar_height][i] = "•"
-
-        lines = [Text("".join(row), style=self.color) for row in grid]
-        header = Text(self.title, style="bold underline")
-        return Text("\n").join([header] + lines)
+        try:
+            plt.clear_data()
+            plt.theme("dark")
+            plt.plot_size(40, 10)
+            plt.date_form("H:M:S")  # show time only
+            plt.title(self.title)
+            plt.plot_date(self.timestamps, self.values, marker="dot", color=self.color, label=self.title)
+            return plt.build()
+        except Exception as e:
+            return f"[Graph Error: {e}]"
