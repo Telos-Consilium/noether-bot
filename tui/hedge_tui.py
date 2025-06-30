@@ -84,6 +84,7 @@ class HedgeBotTUI(App):
         yield Footer()
 
     async def on_mount(self):
+        self.theme = "tokyo-night"
         self.res_x, self.res_y = [], []
         self.short_x, self.short_y = [], []
         self.start_time = time.time()
