@@ -1,0 +1,46 @@
+#status-title {
+  color: cyan;
+  text-style: bold;
+  margin-left: 1;
+}
+
+#log-title {
+  color: magenta;
+  text-style: bold;
+}
+
+LogViewer {
+  height: 20;
+  overflow: auto;
+  border: round white;
+  padding: 1;
+}
+
+HedgeStatus {
+  height: 10;
+  padding: 1;
+  margin-left: 1;
+  border: round green;
+}
+
+ConfigStatus {
+  height: 10;
+  padding: 1;
+  margin-left: 1;
+  border: round green;
+}
+
+PlotextPlot {
+  margin: 1;
+  margin-top: 0;
+  margin-right: 2;
+  background: transparent;
+}
+
+Static {
+    margin-left: 1;
+}
+
+Header {
+    margin-bottom: 1;
+}

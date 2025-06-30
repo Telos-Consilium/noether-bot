@@ -30,7 +30,7 @@ class RiskConfig(BaseModel):
 class ConfigManager:
     def __init__(self):
         self._strategy_config = StrategyConfig(
-            min_hedge_size=100.0,
+            min_hedge_size=0.005,
             max_slippage=0.005,
             preferred_exchanges=["binance"],
             leverage_limits={"binance": 5},
