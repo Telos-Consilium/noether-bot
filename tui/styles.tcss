@@ -23,6 +23,13 @@ HedgeStatus {
   border: round green;
 }
 
+ConfigStatus {
+  height: 10;
+  padding: 1;
+  margin-left: 1;
+  border: round green;
+}
+
 PlotextPlot {
   margin: 1;
   margin-top: 0;

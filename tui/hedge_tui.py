@@ -6,6 +6,7 @@ from textual.binding import Binding
 from textual_plotext import PlotextPlot
 from datetime import datetime
 from models.position_snapshot import PositionSnapshot
+from config.config import ConfigManager
 import asyncio
 import numpy as np
 import time
@@ -17,6 +18,20 @@ class HedgeStatus(Static):
             f"[b]WETH in Pool:[/b] {s.reserve_token1:.4f}\n"
             f"[b]WETH Short Pos:[/b] {s.short_position_size:.4f}\n"
             f"[b]Timestamp:[/b] {s.timestamp.strftime('%H:%M:%S')}"
+        )
+
+class ConfigStatus(Static):
+    def update_status(self):
+        curr_config = ConfigManager()
+        curr_risk_config = curr_config.get_risk_limits()
+        curr_strategy_params = curr_config.get_strategy_parameters()
+
+        self.update(
+            # f"[b]Max Position Size:[/b] {curr_risk_config.max_position_size:.2f}\n"
+            # f"[b]Liquidation Buffer:[/b] {curr_risk_config.liquidation_buffer_pct:.2f}\n"
+            f"[b]Min Hedge Size:[/b] {curr_strategy_params.min_hedge_size:.4f} WETH\n"
+            f"[b]Current Perpetual Exchange:[/b] Binance\n"
+            f"[b]Current EulerSwap Pool:[/b] {curr_config.get_eulerswap_pool_address()[:6]}...{curr_config.get_eulerswap_pool_address()[-4:]}\n"
         )
 
 class LogViewer(Static):
@@ -39,6 +54,7 @@ class HedgeBotTUI(App):
         super().__init__()
         self.sim = simulator
         self.status = HedgeStatus()
+        self.params = ConfigStatus()
         self.logs = LogViewer()
 
     def compose(self) -> ComposeResult:
@@ -56,8 +72,13 @@ class HedgeBotTUI(App):
                 # # yield LogViewer(id="log")
                 # yield self.status
                 # yield self.logs
-                yield Static("[b]Current Position Snapshot[/b]")
-                yield self.status
+                with Horizontal():
+                    with Vertical():
+                        yield Static("[b]Current Position Snapshot[/b]")
+                        yield self.status
+                    with Vertical():
+                        yield Static("[b]Hedge Strategy[/b]")
+                        yield self.params
                 yield Static("[b]Logs[/b]")
                 yield self.logs
         yield Footer()
@@ -68,48 +89,42 @@ class HedgeBotTUI(App):
         self.start_time = time.time()
 
         async def poller():
-            # Get references to both plots
             weth_plot = self.query_one("#weth_plot", PlotextPlot)
             short_plot = self.query_one("#short_plot", PlotextPlot)
 
-            counter = 0
             while True:
-                # Simulate time-based data
                 current_time = time.time()
-
-                # Generate simulated WETH reserve data (sinusoidal with noise)
+                timestamp_label = datetime.fromtimestamp(current_time).strftime('%H:%M:%S')
+                # Generate simulated WETH reserve data
                 weth_reserve = 10 + 2 * np.sin(current_time * 0.5) + 0.5 * np.random.randn()
-
-                # Generate simulated short position data (different pattern)
+                # Generate simulated short position data
                 short_position = 5 + 1.5 * np.cos(current_time * 0.3) + 0.3 * np.random.randn()
 
-                # Store data points
                 self.res_x.append(current_time)
                 self.res_y.append(weth_reserve)
                 self.short_x.append(current_time)
                 self.short_y.append(short_position)
 
-                # Update WETH reserve plot
                 weth_plot.plt.clear_data()
                 weth_plot.plt.scatter(self.res_x, self.res_y, marker="dot")
                 weth_plot.plt.plot(self.res_x, self.res_y, color="green")
                 weth_plot.plt.title("WETH Reserve in Pool")
                 weth_plot.plt.xlabel("Time (seconds)")
                 weth_plot.plt.ylabel("WETH Reserve")
+                weth_plot.plt.xticks(self.res_x, [datetime.fromtimestamp(x).strftime('%H:%M:%S') for x in self.res_x])
 
-                # Update Short position plot
                 short_plot.plt.clear_data()
                 short_plot.plt.scatter(self.short_x, self.short_y, marker="dot")
                 short_plot.plt.plot(self.short_x, self.short_y, color="red")
                 short_plot.plt.title("ETHUSDT Perpetual")
                 short_plot.plt.xlabel("Time (seconds)")
                 short_plot.plt.ylabel("Short Position Size")
+                short_plot.plt.xticks(self.res_x, [datetime.fromtimestamp(x).strftime('%H:%M:%S') for x in self.res_x])
 
-                # Refresh the plots
+
                 weth_plot.refresh()
                 short_plot.refresh()
 
-                # Create a simulated snapshot for status update
                 simulated_snapshot = type('obj', (object,), {
                     'reserve_token0': 1000 + 100 * np.random.randn(),
                     'reserve_token1': weth_reserve,
@@ -117,23 +132,20 @@ class HedgeBotTUI(App):
                     'timestamp': datetime.now()
                 })
 
-                # Update status and logs
                 self.status.update_status(simulated_snapshot)
+                self.params.update_status()
                 self.logs.log(
                     f"RESERVE {weth_reserve:.4f}, SHORT {short_position:.4f}"
                 )
 
-                # Keep only last 50 data points for performance
+                # Keep only last 50 data points for (for now)
                 if len(self.res_x) > 50:
                     self.res_x.pop(0)
                     self.res_y.pop(0)
                     self.short_x.pop(0)
                     self.short_y.pop(0)
 
-                counter += 1
-                await asyncio.sleep(5)  # Poll every second for demo purposes
-
-        # Start the poller as a background task
+                await asyncio.sleep(5)  # Poll every second for simulation purposes
         self.run_worker(poller, exclusive=True)
 
 if __name__ == "__main__":
