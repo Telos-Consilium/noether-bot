@@ -6,28 +6,30 @@ EulerSwap is a recently launched DeFi protocol that offers a native swapping lay
 
 At the heart of this architecture is the ability for pool operators to borrow assets on the fly from Euler’s lending markets and temporarily provide them to the swap pool, earning both swap fees and lending interest in the process. This opens up powerful new strategies for capital-efficient liquidity provisioning.
 
-In this specific setup, the pool operator owns USDT and wants to:
-	•	Provide JIT liquidity for WETH-USDT swaps,
+One of the most compelling use cases enabled by this model is the ability to tap into the high yields of volatile trading pairs like USDT/WETH without being directly exposed to the price fluctuations of WETH—and thus avoiding impermanent loss. Because liquidity is provided dynamically and for a very short duration, operators can benefit from the elevated fee environment of such pairs while maintaining a stable exposure, making this an attractive opportunity for risk-conscious liquidity managers.
 
+In this specific setup, the pool operator owns USDT and wants to:
+	
+	•	Provide JIT liquidity for WETH-USDT swaps,
 	•	Earn swap fees from traders interacting with the pool,
 	•	Simultaneously earn lending yields from Euler’s USDT vault,
 	•	Avoid price exposure to WETH entirely.
 
 To enable this, the operator borrows WETH from EulerVault whenever a trader initiates a WETH-to-USDT swap. After the swap, the pool holds WETH—which exposes the operator to market risk. To neutralize this risk, the operator opens a short WETH position of equivalent size on an off-chain venue like Binance Perpetuals.
 
-Maintaining delta neutrality is crucial. Without it, price fluctuations in WETH can lead to impermanent loss or directional exposure the operator does not want. This is where HedgeBot comes in.
+Maintaining delta neutrality is crucial. Without it, price fluctuations in WETH can lead to impermanent loss or directional exposure the operator does not want. This is where HedgeBot comes in. Additionally, HedgeBot achieves another desirable arbitrage by leveraging the difference between the low cost of borrowing WETH (2.5% as of June 2025) and the higher yield from going short ETH (8.3%), further enhancing profitability and efficiency.
 
 ### Why This Bot
 
 This project provides a modular, extensible python framework that automates the risk management lifecycle for EulerSwap JIT pool operators. The bot continuously:
+	
 	•	Monitors on-chain reserves using getReserves() via RPC polling,
-
 	•	Tracks off-chain short positions,
 	•	Calculates the net delta exposure,
 	•	Executes hedge trades (short/cover) if delta exceeds a configurable threshold,
 	•	Maintains logs and live visualization in a terminal ui dashboard.
 
-By automating delta hedging, pool operators can focus on strategy design and liquidity management—while the bot handles the grunt work of staying neutral in real-time.
+By automating hedging, pool operators can focus on strategy design and liquidity management—while the bot handles the grunt work of staying neutral in real-time.
 
 ## Overview
 
