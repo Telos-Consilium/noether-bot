@@ -11,6 +11,7 @@ from risk_manager.risk_manager import RiskManager
 from strategy_engine.strategy_engine import StrategyEngine
 from database_manager.database_manager import DatabaseManager
 from logger_manager.logger_manager import LoggerManager
+from textual.widgets import Log, RichLog
 from typing import List, Optional
 import asyncio
 import numpy as np
@@ -39,18 +40,22 @@ class ConfigStatus(Static):
             f"[b]Current EulerSwap Pool:[/b] {curr_config.get_eulerswap_pool_address()[:6]}...{curr_config.get_eulerswap_pool_address()[-4:]}\n"
         )
 
-class LogViewer(Static):
-    def __init__(self, initial_logs: Optional[List[str]] = None):
-        super().__init__()
-        self.logs = initial_logs or []
-        self.update("\n".join(self.logs))
+# class LogViewer(Static):
+#     def __init__(self, initial_logs: Optional[List[str]] = None):
+#         super().__init__()
+#         self.logs = initial_logs or []
+#         self.update("\n".join(self.logs))
 
-    def log(self, msg: str):
-        ts = datetime.now().strftime('%H:%M:%S')
-        self.logs.append(f"[{ts}] {msg}")
-        if len(self.logs) > 30:
-            self.logs.pop(0)
-        self.update("\n".join(self.logs))
+#     def log(self, msg: str):
+#         ts = datetime.now().strftime('%H:%M:%S')
+#         self.logs.append(f"[{ts}] {msg}")
+#         if len(self.logs) > 30:
+#             self.logs.pop(0)
+#         self.update("\n".join(self.logs))
+#
+# class LogViewer(Log):
+#     def write_log(self, msg: str):
+#         self.write_line(msg)
 
 class HedgeBotTUI(App):
     BINDINGS = [Binding("q", "quit", "Quit")]
@@ -61,19 +66,11 @@ class HedgeBotTUI(App):
         self.sim = simulator
         self.status = HedgeStatus()
         self.params = ConfigStatus()
-        self.logs = LogViewer()
+        self.logs = RichLog(auto_scroll=True, wrap=True, max_lines=100, min_width=78, markup=True)
         self.db = DatabaseManager()
         self.logger = LoggerManager()
         self.risk_manager = RiskManager()
         self.strategy_engine = None
-
-    def _load_initial_hedge_logs(self) -> List[str]:
-        logs = []
-        for hs in self.db.get_all_hedge_snapshots()[-30:]:  # Only last 30 entries
-            logs.append(
-                f"[{hs.timestamp.strftime('%H:%M:%S')}] {hs.side.upper()} {hs.amount} {hs.symbol} @ {hs.avg_price} (Cost: {hs.total_cost})"
-            )
-        return logs
 
 
     def compose(self) -> ComposeResult:
@@ -113,6 +110,7 @@ class HedgeBotTUI(App):
             database=self.db,
             risk_manager=RiskManager(),
         )
+        # log_widget = self.query_one(LogViewer)
 
         async def poller():
             weth_plot = self.query_one("#weth_plot", PlotextPlot)
@@ -175,13 +173,15 @@ class HedgeBotTUI(App):
                 weth_plot.refresh()
                 short_plot.refresh()
 
-                self.status.update_status(snapshot_open_short)
+                self.status.update_status(snapshot)
                 self.params.update_status()
 
                 new_logs = self.logger.get_all_logs()[last_seen_logs:]
+                self.logs.write(f"[TIMESTAMP] {timestamp_label}\n")
                 for log in new_logs:
-                    self.logs.log(log)
+                    self.logs.write(log)
                 last_seen_logs += len(new_logs)
+                self.logs.write(f"\n\n")
 
 
                 # Keep only last 50 data points for (for now)
@@ -195,7 +195,6 @@ class HedgeBotTUI(App):
         self.run_worker(poller, exclusive=True)
 
     async def on_shutdown(self) -> None:
-        print("[TUI] Closing Binance exchange connection...")
         if self.strategy_engine is not None:
              await self.strategy_engine.binance_exchange.close()
 
