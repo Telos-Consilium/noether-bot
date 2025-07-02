@@ -40,23 +40,6 @@ class ConfigStatus(Static):
             f"[b]Current EulerSwap Pool:[/b] {curr_config.get_eulerswap_pool_address()[:6]}...{curr_config.get_eulerswap_pool_address()[-4:]}\n"
         )
 
-# class LogViewer(Static):
-#     def __init__(self, initial_logs: Optional[List[str]] = None):
-#         super().__init__()
-#         self.logs = initial_logs or []
-#         self.update("\n".join(self.logs))
-
-#     def log(self, msg: str):
-#         ts = datetime.now().strftime('%H:%M:%S')
-#         self.logs.append(f"[{ts}] {msg}")
-#         if len(self.logs) > 30:
-#             self.logs.pop(0)
-#         self.update("\n".join(self.logs))
-#
-# class LogViewer(Log):
-#     def write_log(self, msg: str):
-#         self.write_line(msg)
-
 class HedgeBotTUI(App):
     BINDINGS = [Binding("q", "quit", "Quit")]
     CSS_PATH = 'styles.tcss'
@@ -71,6 +54,7 @@ class HedgeBotTUI(App):
         self.logger = LoggerManager()
         self.risk_manager = RiskManager()
         self.strategy_engine = None
+
 
 
     def compose(self) -> ComposeResult:
@@ -110,7 +94,6 @@ class HedgeBotTUI(App):
             database=self.db,
             risk_manager=RiskManager(),
         )
-        # log_widget = self.query_one(LogViewer)
 
         async def poller():
             weth_plot = self.query_one("#weth_plot", PlotextPlot)
@@ -125,13 +108,13 @@ class HedgeBotTUI(App):
                 snapshot_open_short = PositionSnapshot(
                      reserve_token0=2000.0,
                      reserve_token1=0.05,
-                     short_position_size=0.038,
+                     short_position_size=0.05,
                      timestamp=datetime.now()
                 )
                 snapshot_close_short = PositionSnapshot(
                     reserve_token0=2500.0,
                     reserve_token1=0.02,
-                    short_position_size=0.05,  # Reflects hedge at t=0s
+                    short_position_size=0.05,
                     timestamp=datetime.now()
                 )
                 snapshot = snapshot_open_short
@@ -177,11 +160,11 @@ class HedgeBotTUI(App):
                 self.params.update_status()
 
                 new_logs = self.logger.get_all_logs()[last_seen_logs:]
-                self.logs.write(f"[TIMESTAMP] {timestamp_label}\n")
+                self.logs.write(f"[bold][TIMESTAMP][/bold] {timestamp_label}\n")
                 for log in new_logs:
                     self.logs.write(log)
                 last_seen_logs += len(new_logs)
-                self.logs.write(f"\n\n")
+                self.logs.write("\n\n")
 
 
                 # Keep only last 50 data points for (for now)

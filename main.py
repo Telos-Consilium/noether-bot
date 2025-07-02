@@ -1,4 +1,5 @@
 import asyncio
+from risk_manager.risk_manager import RiskManager
 from swap_monitor.rpc_swap_monitor import RPCSwapMonitor
 from models.position_snapshot import PositionSnapshot
 from config.config import ConfigManager
@@ -12,6 +13,7 @@ import os
 
 config = ConfigManager()
 database = DatabaseManager()
+risk_manager = RiskManager()
 RPC_URL = config.get_rpc_url()
 POOL_ADDRESS = config.get_eulerswap_pool_address()
 ABI_PATH = "abi/euler_swap_pool_abi.json"
@@ -63,7 +65,7 @@ async def main():
 
 async def test_strategy_engine():
     logger = LoggerManager()
-    strategy_engine = StrategyEngine()
+    strategy_engine = StrategyEngine(logger, config, database, risk_manager)
 
     # t = 0s
     snapshot_open_short = PositionSnapshot(
