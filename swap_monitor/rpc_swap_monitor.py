@@ -26,6 +26,10 @@ class RPCSwapMonitor(ISwapMonitor):
         self.exchange = exchange
         self.symbol_perpetual = symbol_perpetual
 
+    def init_contract(self, pool_address: str) -> None:
+        self.pool_address = Web3.to_checksum_address(pool_address)
+        self.contract = self.web3.eth.contract(address=self.pool_address, abi=self.abi)
+
     def on_reserve_change(self, callback: Callable[[PositionSnapshot], None]) -> None:
         self._callback = callback
 
@@ -50,3 +54,17 @@ class RPCSwapMonitor(ISwapMonitor):
             if self._callback:
                 self._callback(current)
             await asyncio.sleep(POLL_INTERVAL_SEC)
+
+    async def fetch_snapshot(self) -> PositionSnapshot:
+        if self.contract is None:
+            raise RuntimeError("Contract not initialized. Call start_monitoring first.")
+
+        reserves = self.contract.functions.getReserves().call()
+        position = await self.exchange.get_current_perpetual_position(self.symbol_perpetual)
+        database.save_position_snapshot(position)
+        return PositionSnapshot(
+            reserve_token0=reserves[0] / 10**6,
+            reserve_token1=reserves[1] / 10**18,
+            timestamp=datetime.now(),
+            short_position_size=position,
+        )

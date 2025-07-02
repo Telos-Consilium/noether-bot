@@ -9,14 +9,14 @@ class LoggerManager:
 
     def _log(self, tag: str, message: str):
         timestamp = datetime.utcnow().isoformat()
-        entry = f"[{tag}] {message} | Timestamp: {timestamp}"
+        entry = f"[bold green][{tag}][/bold green]\n{message}"
         self._logs.append(entry)
         print(entry)
 
     def log_position_polling(self, snapshot: PositionSnapshot):
         self._log(
             "POSITION_POLLING",
-            f"USDC: {snapshot.reserve_token0}, WETH: {snapshot.reserve_token1}, WETH Short Position: {snapshot.short_position_size}"
+            f"USDC: {snapshot.reserve_token0}, WETH: {snapshot.reserve_token1},\nWETH Short Position: {snapshot.short_position_size}"
         )
 
     def log_calculated_hedge(self, hedge_amount: float):
@@ -28,15 +28,15 @@ class LoggerManager:
     def log_open_short_position(self, order: dict):
         self._log(
             "OPEN_SHORT_POSITION",
-            f"Side: {order.get('side')}, Amount: {order.get('amount')}, "
-            f"Price: {order.get('price')}, Symbol: {order.get('symbol')}, Status: {order.get('status')}"
+            f"Side: {order.get('side')}, Amount: {order.get('amount')},\n"
+            f"Price: {order.get('price')}, Symbol: {order.get('symbol')},\nStatus: {order.get('status')}"
         )
 
     def log_close_short_position(self, order: dict):
         self._log(
             "CLOSE_SHORT_POSITION",
-            f"Side: {order.get('side')}, Amount: {order.get('amount')}, "
-            f"Price: {order.get('price')}, Symbol: {order.get('symbol')}, Status: {order.get('status')}"
+            f"Side: {order.get('side')}, Amount: {order.get('amount')},\n"
+            f"Price: {order.get('price')}, Symbol: {order.get('symbol')},\nStatus: {order.get('status')}"
         )
 
     def get_all_logs(self) -> List[str]:
