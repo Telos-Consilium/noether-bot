@@ -11,11 +11,16 @@ from risk_manager.risk_manager import RiskManager
 from strategy_engine.strategy_engine import StrategyEngine
 from database_manager.database_manager import DatabaseManager
 from logger_manager.logger_manager import LoggerManager
+from exchange_manager.binance_exchange import BinanceExchange
+from pathlib import Path
 from textual.widgets import Log, RichLog
 from typing import List, Optional
 import asyncio
 import numpy as np
 import time
+
+from swap_monitor.rpc_swap_monitor import RPCSwapMonitor
+from test.test_importlib.test_abc import init
 
 class HedgeStatus(Static):
     def update_status(self, s: PositionSnapshot):
@@ -54,6 +59,7 @@ class HedgeBotTUI(App):
         self.logger = LoggerManager()
         self.risk_manager = RiskManager()
         self.strategy_engine = None
+        self.config = ConfigManager()
 
 
 
@@ -88,6 +94,18 @@ class HedgeBotTUI(App):
         self.res_x, self.res_y = [], []
         self.short_x, self.short_y = [], []
         self.start_time = time.time()
+
+        RPC_URL = self.config.get_rpc_url()
+        POOL_ADDRESS = self.config.get_eulerswap_pool_address()
+        ABI_PATH = Path(__file__).resolve().parent.parent / "abi" / "euler_swap_pool_abi.json"
+        binance_exchange = self.config.get_exchange('binance')
+        binance_exchange_creds = self.config.get_exchange_credentials('binance')
+        binance_exchange = BinanceExchange(api_key=binance_exchange_creds.api_key, api_secret=binance_exchange_creds.api_secret)
+        symbol_ccxt = "ETH/USDT:USDT"
+
+        rpc_monitor = RPCSwapMonitor(rpc_url = RPC_URL, abi_path= str(ABI_PATH), exchange= binance_exchange, symbol_perpetual=symbol_ccxt)
+        rpc_monitor.init_contract(POOL_ADDRESS)
+
         self.strategy_engine = StrategyEngine(
             logger=self.logger,
             config=ConfigManager(),
@@ -101,27 +119,28 @@ class HedgeBotTUI(App):
             logger = self.logger
 
             last_seen_logs = 0
-            count = -1
+            # count = -1
 
             while True and self.strategy_engine is not None:
-                count += 1
-                snapshot_open_short = PositionSnapshot(
-                     reserve_token0=2000.0,
-                     reserve_token1=0.05,
-                     short_position_size=0.05,
-                     timestamp=datetime.now()
-                )
-                snapshot_close_short = PositionSnapshot(
-                    reserve_token0=2500.0,
-                    reserve_token1=0.02,
-                    short_position_size=0.05,
-                    timestamp=datetime.now()
-                )
-                snapshot = snapshot_open_short
-                if count % 2 != 0:
-                    snapshot = snapshot_close_short
+                snapshot = await rpc_monitor.fetch_snapshot()
+                # count += 1
+                # snapshot_open_short = PositionSnapshot(
+                #      reserve_token0=2000.0,
+                #      reserve_token1=0.05,
+                #      short_position_size=0.038,
+                #      timestamp=datetime.now()
+                # )
+                # snapshot_close_short = PositionSnapshot(
+                #     reserve_token0=2500.0,
+                #     reserve_token1=0.02,
+                #     short_position_size=0.05,
+                #     timestamp=datetime.now()
+                # )
+                # snapshot = snapshot_open_short
+                # if count % 2 != 0:
+                #     snapshot = snapshot_close_short
                 logger.log_position_polling(snapshot)
-                await self.strategy_engine.process_position_snapshot(snapshot)
+                # await self.strategy_engine.process_position_snapshot(snapshot)
 
 
                 current_time = time.time()
@@ -150,7 +169,7 @@ class HedgeBotTUI(App):
                 short_plot.plt.title("ETHUSDT Perpetual")
                 short_plot.plt.xlabel("Time (seconds)")
                 short_plot.plt.ylabel("Short Position Size")
-                short_plot.plt.xticks(self.res_x, [datetime.fromtimestamp(x).strftime('%H:%M:%S') for x in self.res_x])
+                short_plot.plt.xticks(self.short_x, [datetime.fromtimestamp(x).strftime('%H:%M:%S') for x in self.short_x])
 
 
                 weth_plot.refresh()
@@ -174,7 +193,7 @@ class HedgeBotTUI(App):
                     self.short_x.pop(0)
                     self.short_y.pop(0)
 
-                await asyncio.sleep(10)  # Poll every second for simulation purposes
+                await asyncio.sleep(5)  # Polling interval
         self.run_worker(poller, exclusive=True)
 
     async def on_shutdown(self) -> None:
