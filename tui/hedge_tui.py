@@ -7,6 +7,11 @@ from textual_plotext import PlotextPlot
 from datetime import datetime
 from models.position_snapshot import PositionSnapshot
 from config.config import ConfigManager
+from risk_manager.risk_manager import RiskManager
+from strategy_engine.strategy_engine import StrategyEngine
+from database_manager.database_manager import DatabaseManager
+from logger_manager.logger_manager import LoggerManager
+from typing import List, Optional
 import asyncio
 import numpy as np
 import time
@@ -35,9 +40,10 @@ class ConfigStatus(Static):
         )
 
 class LogViewer(Static):
-    def __init__(self):
+    def __init__(self, initial_logs: Optional[List[str]] = None):
         super().__init__()
-        self.logs = []
+        self.logs = initial_logs or []
+        self.update("\n".join(self.logs))
 
     def log(self, msg: str):
         ts = datetime.now().strftime('%H:%M:%S')
@@ -56,6 +62,19 @@ class HedgeBotTUI(App):
         self.status = HedgeStatus()
         self.params = ConfigStatus()
         self.logs = LogViewer()
+        self.db = DatabaseManager()
+        self.logger = LoggerManager()
+        self.risk_manager = RiskManager()
+        self.strategy_engine = None
+
+    def _load_initial_hedge_logs(self) -> List[str]:
+        logs = []
+        for hs in self.db.get_all_hedge_snapshots()[-30:]:  # Only last 30 entries
+            logs.append(
+                f"[{hs.timestamp.strftime('%H:%M:%S')}] {hs.side.upper()} {hs.amount} {hs.symbol} @ {hs.avg_price} (Cost: {hs.total_cost})"
+            )
+        return logs
+
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -88,22 +107,52 @@ class HedgeBotTUI(App):
         self.res_x, self.res_y = [], []
         self.short_x, self.short_y = [], []
         self.start_time = time.time()
+        self.strategy_engine = StrategyEngine(
+            logger=self.logger,
+            config=ConfigManager(),
+            database=self.db,
+            risk_manager=RiskManager(),
+        )
 
         async def poller():
             weth_plot = self.query_one("#weth_plot", PlotextPlot)
             short_plot = self.query_one("#short_plot", PlotextPlot)
+            logger = self.logger
 
-            while True:
+            last_seen_logs = 0
+            count = -1
+
+            while True and self.strategy_engine is not None:
+                count += 1
+                snapshot_open_short = PositionSnapshot(
+                     reserve_token0=2000.0,
+                     reserve_token1=0.05,
+                     short_position_size=0.038,
+                     timestamp=datetime.now()
+                )
+                snapshot_close_short = PositionSnapshot(
+                    reserve_token0=2500.0,
+                    reserve_token1=0.02,
+                    short_position_size=0.05,  # Reflects hedge at t=0s
+                    timestamp=datetime.now()
+                )
+                snapshot = snapshot_open_short
+                if count % 2 != 0:
+                    snapshot = snapshot_close_short
+                logger.log_position_polling(snapshot)
+                await self.strategy_engine.process_position_snapshot(snapshot)
+
+
                 current_time = time.time()
-                timestamp_label = datetime.fromtimestamp(current_time).strftime('%H:%M:%S')
+                timestamp_label = snapshot.timestamp.strftime('%H:%M:%S')
                 # Generate simulated WETH reserve data
-                weth_reserve = 10 + 2 * np.sin(current_time * 0.5) + 0.5 * np.random.randn()
+                weth_reserve = snapshot.reserve_token1
                 # Generate simulated short position data
-                short_position = 5 + 1.5 * np.cos(current_time * 0.3) + 0.3 * np.random.randn()
-
-                self.res_x.append(current_time)
+                short_position = snapshot.short_position_size
+                timestamp_float = snapshot.timestamp.timestamp()
+                self.res_x.append(timestamp_float)
                 self.res_y.append(weth_reserve)
-                self.short_x.append(current_time)
+                self.short_x.append(timestamp_float)
                 self.short_y.append(short_position)
 
                 weth_plot.plt.clear_data()
@@ -126,18 +175,14 @@ class HedgeBotTUI(App):
                 weth_plot.refresh()
                 short_plot.refresh()
 
-                simulated_snapshot = type('obj', (object,), {
-                    'reserve_token0': 1000 + 100 * np.random.randn(),
-                    'reserve_token1': weth_reserve,
-                    'short_position_size': short_position,
-                    'timestamp': datetime.now()
-                })
-
-                self.status.update_status(simulated_snapshot)
+                self.status.update_status(snapshot_open_short)
                 self.params.update_status()
-                self.logs.log(
-                    f"RESERVE {weth_reserve:.4f}, SHORT {short_position:.4f}"
-                )
+
+                new_logs = self.logger.get_all_logs()[last_seen_logs:]
+                for log in new_logs:
+                    self.logs.log(log)
+                last_seen_logs += len(new_logs)
+
 
                 # Keep only last 50 data points for (for now)
                 if len(self.res_x) > 50:
@@ -146,8 +191,14 @@ class HedgeBotTUI(App):
                     self.short_x.pop(0)
                     self.short_y.pop(0)
 
-                await asyncio.sleep(5)  # Poll every second for simulation purposes
+                await asyncio.sleep(10)  # Poll every second for simulation purposes
         self.run_worker(poller, exclusive=True)
+
+    async def on_shutdown(self) -> None:
+        print("[TUI] Closing Binance exchange connection...")
+        if self.strategy_engine is not None:
+             await self.strategy_engine.binance_exchange.close()
+
 
 if __name__ == "__main__":
     from data_simulator import SnapshotSimulator
