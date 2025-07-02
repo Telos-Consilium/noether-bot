@@ -123,6 +123,7 @@ class HedgeBotTUI(App):
 
             while True and self.strategy_engine is not None:
                 snapshot = await rpc_monitor.fetch_snapshot()
+                # can be used to simulate alternating positions
                 # count += 1
                 # snapshot_open_short = PositionSnapshot(
                 #      reserve_token0=2000.0,
@@ -140,10 +141,9 @@ class HedgeBotTUI(App):
                 # if count % 2 != 0:
                 #     snapshot = snapshot_close_short
                 logger.log_position_polling(snapshot)
-                # await self.strategy_engine.process_position_snapshot(snapshot)
+                await self.strategy_engine.process_position_snapshot(snapshot)
 
 
-                current_time = time.time()
                 timestamp_label = snapshot.timestamp.strftime('%H:%M:%S')
                 # Generate simulated WETH reserve data
                 weth_reserve = snapshot.reserve_token1

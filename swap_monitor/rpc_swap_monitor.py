@@ -61,6 +61,7 @@ class RPCSwapMonitor(ISwapMonitor):
 
         reserves = self.contract.functions.getReserves().call()
         position = await self.exchange.get_current_perpetual_position(self.symbol_perpetual)
+        database.save_position_snapshot(position)
         return PositionSnapshot(
             reserve_token0=reserves[0] / 10**6,
             reserve_token1=reserves[1] / 10**18,
