@@ -35,8 +35,6 @@ By automating hedging, pool operators can focus on strategy design and liquidity
 
 A Python framework for automated delta-neutral strategies on EulerSwap, specifically designed for USDC/WETH pools. The framework constantly monitors the pool status, and automatically hedges ETH exposure on CEX to maintain delta neutrality
 
-![Screenshot 2025-07-02 at 6.52.53 PM.png](EulerSwap%20Hackathon%20Delta%20Neutral%20Hedging%20Bot%20Tech%202246da066a74800d9899e1370c9f1068/Screenshot_2025-07-02_at_6.52.53_PM.png)
-
 The frontend of this bot is a functional Terminal UI (TUI) which makes it very convenient to see the status of your positions, monitor bot hedging and trades, and keep an eye on risk parameters and on-chain metadata
 
 ## Architecture Diagram
@@ -131,7 +129,7 @@ To close the bot, just press the `q` key
 
 ## TUI Interface
 
-![https://imgproxy.gamma.app/resize/quality:80/resizing_type:fit/width:2000/https://cdn.gamma.app/gc1vlcj1tmzdbkg/86e90423fdce4d728c3f75b79fe95c0d/original/Screenshot-2025-07-02-at-6.52.53-PM.png]
+![](https://imgproxy.gamma.app/resize/quality:80/resizing_type:fit/width:2000/https://cdn.gamma.app/gc1vlcj1tmzdbkg/86e90423fdce4d728c3f75b79fe95c0d/original/Screenshot-2025-07-02-at-6.52.53-PM.png)
 
 Through this terminal UI, a pool operator can get a very functional at-a-glance information of all the important parameters related to position, exposure, hedging as well as being able to conveniently monitor the trades executed by the bot
 
