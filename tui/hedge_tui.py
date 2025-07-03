@@ -22,6 +22,7 @@ import time
 from swap_monitor.rpc_swap_monitor import RPCSwapMonitor
 from test.test_importlib.test_abc import init
 
+
 class HedgeStatus(Static):
     def update_status(self, s: PositionSnapshot):
         self.update(
@@ -30,6 +31,7 @@ class HedgeStatus(Static):
             f"[b]WETH Short Pos:[/b] {s.short_position_size:.4f}\n"
             f"[b]Timestamp:[/b] {s.timestamp.strftime('%H:%M:%S')}"
         )
+
 
 class ConfigStatus(Static):
     def update_status(self):
@@ -45,9 +47,10 @@ class ConfigStatus(Static):
             f"[b]Current EulerSwap Pool:[/b] {curr_config.get_eulerswap_pool_address()[:6]}...{curr_config.get_eulerswap_pool_address()[-4:]}\n"
         )
 
-class HedgeBotTUI(App):
+
+class NoETHerBotTUI(App):
     BINDINGS = [Binding("q", "quit", "Quit")]
-    CSS_PATH = 'styles.tcss'
+    CSS_PATH = "styles.tcss"
 
     def __init__(self, simulator):
         super().__init__()
@@ -60,8 +63,6 @@ class HedgeBotTUI(App):
         self.risk_manager = RiskManager()
         self.strategy_engine = None
         self.config = ConfigManager()
-
-
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -98,12 +99,16 @@ class HedgeBotTUI(App):
         RPC_URL = self.config.get_rpc_url()
         POOL_ADDRESS = self.config.get_eulerswap_pool_address()
         ABI_PATH = Path(__file__).resolve().parent.parent / "abi" / "euler_swap_pool_abi.json"
-        binance_exchange = self.config.get_exchange('binance')
-        binance_exchange_creds = self.config.get_exchange_credentials('binance')
-        binance_exchange = BinanceExchange(api_key=binance_exchange_creds.api_key, api_secret=binance_exchange_creds.api_secret)
+        binance_exchange = self.config.get_exchange("binance")
+        binance_exchange_creds = self.config.get_exchange_credentials("binance")
+        binance_exchange = BinanceExchange(
+            api_key=binance_exchange_creds.api_key, api_secret=binance_exchange_creds.api_secret
+        )
         symbol_ccxt = "ETH/USDT:USDT"
 
-        rpc_monitor = RPCSwapMonitor(rpc_url = RPC_URL, abi_path= str(ABI_PATH), exchange= binance_exchange, symbol_perpetual=symbol_ccxt)
+        rpc_monitor = RPCSwapMonitor(
+            rpc_url=RPC_URL, abi_path=str(ABI_PATH), exchange=binance_exchange, symbol_perpetual=symbol_ccxt
+        )
         rpc_monitor.init_contract(POOL_ADDRESS)
 
         self.strategy_engine = StrategyEngine(
@@ -143,8 +148,7 @@ class HedgeBotTUI(App):
                 logger.log_position_polling(snapshot)
                 await self.strategy_engine.process_position_snapshot(snapshot)
 
-
-                timestamp_label = snapshot.timestamp.strftime('%H:%M:%S')
+                timestamp_label = snapshot.timestamp.strftime("%H:%M:%S")
                 # Generate simulated WETH reserve data
                 weth_reserve = snapshot.reserve_token1
                 # Generate simulated short position data
@@ -161,7 +165,7 @@ class HedgeBotTUI(App):
                 weth_plot.plt.title("WETH Reserve in Pool")
                 weth_plot.plt.xlabel("Time (seconds)")
                 weth_plot.plt.ylabel("WETH Reserve")
-                weth_plot.plt.xticks(self.res_x, [datetime.fromtimestamp(x).strftime('%H:%M:%S') for x in self.res_x])
+                weth_plot.plt.xticks(self.res_x, [datetime.fromtimestamp(x).strftime("%H:%M:%S") for x in self.res_x])
 
                 short_plot.plt.clear_data()
                 short_plot.plt.scatter(self.short_x, self.short_y, marker="dot")
@@ -169,8 +173,9 @@ class HedgeBotTUI(App):
                 short_plot.plt.title("ETHUSDT Perpetual")
                 short_plot.plt.xlabel("Time (seconds)")
                 short_plot.plt.ylabel("Short Position Size")
-                short_plot.plt.xticks(self.short_x, [datetime.fromtimestamp(x).strftime('%H:%M:%S') for x in self.short_x])
-
+                short_plot.plt.xticks(
+                    self.short_x, [datetime.fromtimestamp(x).strftime("%H:%M:%S") for x in self.short_x]
+                )
 
                 weth_plot.refresh()
                 short_plot.refresh()
@@ -185,7 +190,6 @@ class HedgeBotTUI(App):
                 last_seen_logs += len(new_logs)
                 self.logs.write("\n\n")
 
-
                 # Keep only last 50 data points for (for now)
                 if len(self.res_x) > 50:
                     self.res_x.pop(0)
@@ -194,14 +198,16 @@ class HedgeBotTUI(App):
                     self.short_y.pop(0)
 
                 await asyncio.sleep(5)  # Polling interval
+
         self.run_worker(poller, exclusive=True)
 
     async def on_shutdown(self) -> None:
         if self.strategy_engine is not None:
-             await self.strategy_engine.binance_exchange.close()
+            await self.strategy_engine.binance_exchange.close()
 
 
 if __name__ == "__main__":
     from data_simulator import SnapshotSimulator
+
     sim = SnapshotSimulator()
-    HedgeBotTUI(sim).run()
+    NoETHerBotTUI(sim).run()
