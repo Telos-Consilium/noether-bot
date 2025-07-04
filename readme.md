@@ -1,4 +1,10 @@
-# EulerSwap Hackathon: Delta Neutral Hedging Bot Technical Documentation
+# NoetherBot for EulerSwap's Encode competition: Delta Neutral Hedging Bot - Technical Documentation
+
+USD/ETH pools often offer higher yields—but expose you to IL. What if you could hedge this risk AND arbitrage the spread between borrow rates and perpetual funding rates? Introducing NoetherBot—our entry to the EulerSwap Encode Competition.
+
+The name NoetherBot is a tribute to Emmy Noether—a brilliant mathematician known for her groundbreaking work on connecting symmetries and conservation laws.
+
+Fittingly, it also reads as "No Ether"—since the bot removes ETH exposure through delta-neutral hedging. With some small adaptations, the bot can also work for other pairs like USDT / WBTC. 
 
 ## Background
 
